@@ -1,5 +1,6 @@
 from typing import List
 import os
+import random
 import tempfile
 
 import grpc
@@ -42,7 +43,13 @@ def verify_cert(chain: List[Certificate], cert: Certificate) -> None:
         )
 
 
+def random_port() -> int:
+    ports = list(range(1025, 65536))
+    return random.choice(ports)
+
+
 def test_protocol() -> None:
+    port = random_port()
     cacert, key = pskca.create_certificate_and_key(ca=True)
     ca = pskca.CA(cacert, key, [cacert])
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
@@ -54,12 +61,12 @@ def test_protocol() -> None:
         ),
         server,
     )
-    server.add_insecure_port("0.0.0.0:50052")
+    server.add_insecure_port("0.0.0.0:%s" % port)
     server.start()
 
     try:
         csr, unused_key = pskca.create_certificate_signing_request()
-        with grpc.insecure_channel("localhost:50052") as channel:
+        with grpc.insecure_channel("localhost:%s" % port) as channel:
             client = cakes.CAKESClient(
                 channel,
                 csr,
@@ -77,6 +84,7 @@ def test_protocol() -> None:
 
 
 def test_separate_ca() -> None:
+    port = random_port()
     cacert, cakey = pskca.create_certificate_and_key(ca=True)
     servercsr, serverkey = pskca.create_certificate_signing_request(
         cn="server",
@@ -93,12 +101,12 @@ def test_separate_ca() -> None:
         ),
         server,
     )
-    server.add_insecure_port("0.0.0.0:50052")
+    server.add_insecure_port("0.0.0.0:%s" % port)
     server.start()
 
     try:
         clientcsr, unused_key = pskca.create_certificate_signing_request()
-        with grpc.insecure_channel("localhost:50052") as channel:
+        with grpc.insecure_channel("localhost:%s" % port) as channel:
             client = cakes.CAKESClient(
                 channel,
                 clientcsr,
