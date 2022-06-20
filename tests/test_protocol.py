@@ -62,6 +62,7 @@ def test_ifconfig() -> None:
     import subprocess
 
     subprocess.check_call(["ifconfig", "-a"])
+    assert 0
 
 
 def test_protocol() -> None:
