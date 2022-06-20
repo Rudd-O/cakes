@@ -61,7 +61,7 @@ def random_address() -> str:
 def test_ifconfig() -> None:
     import subprocess
 
-    subprocess.check_call(["ifconfig", "-a"])
+    subprocess.check_call(["ip", "addr"])
 
 
 def test_protocol() -> None:
