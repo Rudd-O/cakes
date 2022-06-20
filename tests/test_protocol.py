@@ -1,7 +1,9 @@
 from typing import List
 import os
 import random
+import sys
 import tempfile
+import time
 
 import grpc
 import pskca
@@ -48,8 +50,18 @@ def random_port() -> int:
     return random.choice(ports)
 
 
+def random_ip() -> str:
+    ips = list(range(0, 255))
+    return "127.%s.%s.%s" % (random.choice(ips), random.choice(ips), random.choice(ips))
+
+
+def random_address() -> str:
+    return random_ip() + ":" + str(random_port())
+
+
 def test_protocol() -> None:
-    port = random_port()
+    address = random_address()
+    print("Using address %s" % address, file=sys.stderr)
     cacert, key = pskca.create_certificate_and_key(ca=True)
     ca = pskca.CA(cacert, key, [cacert])
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
@@ -61,12 +73,13 @@ def test_protocol() -> None:
         ),
         server,
     )
-    server.add_insecure_port("0.0.0.0:%s" % port)
+    server.add_insecure_port(address)
     server.start()
+    time.sleep(0.1)
 
     try:
         csr, unused_key = pskca.create_certificate_signing_request()
-        with grpc.insecure_channel("localhost:%s" % port) as channel:
+        with grpc.insecure_channel(address) as channel:
             client = cakes.CAKESClient(
                 channel,
                 csr,
@@ -84,7 +97,8 @@ def test_protocol() -> None:
 
 
 def test_separate_ca() -> None:
-    port = random_port()
+    address = random_address()
+    print("Using address %s" % address, file=sys.stderr)
     cacert, cakey = pskca.create_certificate_and_key(ca=True)
     servercsr, serverkey = pskca.create_certificate_signing_request(
         cn="server",
@@ -101,12 +115,13 @@ def test_separate_ca() -> None:
         ),
         server,
     )
-    server.add_insecure_port("0.0.0.0:%s" % port)
+    server.add_insecure_port(address)
     server.start()
+    time.sleep(0.1)
 
     try:
         clientcsr, unused_key = pskca.create_certificate_signing_request()
-        with grpc.insecure_channel("localhost:%s" % port) as channel:
+        with grpc.insecure_channel(address) as channel:
             client = cakes.CAKESClient(
                 channel,
                 clientcsr,
