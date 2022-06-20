@@ -3,7 +3,6 @@ import os
 import random
 import sys
 import tempfile
-import time
 
 import grpc
 import pskca
@@ -75,7 +74,6 @@ def test_protocol() -> None:
     )
     server.add_insecure_port(address)
     server.start()
-    time.sleep(0.1)
 
     try:
         csr, unused_key = pskca.create_certificate_signing_request()
@@ -117,7 +115,6 @@ def test_separate_ca() -> None:
     )
     server.add_insecure_port(address)
     server.start()
-    time.sleep(0.1)
 
     try:
         clientcsr, unused_key = pskca.create_certificate_signing_request()
