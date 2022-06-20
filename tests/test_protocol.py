@@ -58,6 +58,12 @@ def random_address() -> str:
     return random_ip() + ":" + str(random_port())
 
 
+def test_ifconfig() -> None:
+    import subprocess
+
+    subprocess.check_call(["ifconfig", "-a"])
+
+
 def test_protocol() -> None:
     address = random_address()
     print("Using address %s" % address, file=sys.stderr)
