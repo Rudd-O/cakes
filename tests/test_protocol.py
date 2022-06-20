@@ -51,23 +51,23 @@ def random_port() -> int:
 
 def random_ip() -> str:
     ips = list(range(0, 255))
-    return "127.%s.%s.%s" % (random.choice(ips), random.choice(ips), random.choice(ips))
+    return "127.%s.%s.%s" % (
+        random.choice(ips),
+        random.choice(ips),
+        random.choice(ips),
+    )
 
 
 def random_address() -> str:
     return random_ip() + ":" + str(random_port())
 
 
-def test_ifconfig() -> None:
-    import subprocess
-
-    subprocess.check_call(["ifconfig", "-a"])
-    assert 0
-
-
 def test_protocol() -> None:
     address = random_address()
     print("Using address %s" % address, file=sys.stderr)
+    import subprocess
+
+    subprocess.check_call(["ifconfig", "-a"])
     cacert, key = pskca.create_certificate_and_key(ca=True)
     ca = pskca.CA(cacert, key, [cacert])
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
