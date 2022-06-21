@@ -242,7 +242,7 @@ def __server() -> None:
         server,
     )
 
-    server.add_insecure_port("0.0.0.0:50052")
+    server.add_insecure_port("127.0.40.50:50052")
     print("starting server")
     server.start()
     server.wait_for_termination()

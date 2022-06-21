@@ -157,7 +157,7 @@ __all__ = ["CAKESClient"]
 
 def __client() -> None:
     csr, unused_key = pskca.create_certificate_signing_request()
-    with grpc.insecure_channel("localhost:50052") as channel:
+    with grpc.insecure_channel("127.0.40.50:50052") as channel:
         client = CAKESClient(
             channel,
             csr,

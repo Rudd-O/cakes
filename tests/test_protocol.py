@@ -65,9 +65,6 @@ def random_address() -> str:
 def test_protocol() -> None:
     address = random_address()
     print("Using address %s" % address, file=sys.stderr)
-    import subprocess
-
-    subprocess.check_call(["ifconfig", "-a"])
     cacert, key = pskca.create_certificate_and_key(ca=True)
     ca = pskca.CA(cacert, key, [cacert])
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
