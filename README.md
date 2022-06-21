@@ -17,7 +17,7 @@ You will find this package useful if:
 
 
 You'll find more developer and implementation documentation in the
-[module](src/cakes/__init__.py).
+[module](https://github.com/Rudd-O/cakes/blob/master/src/cakes/__init__.py).
 
 This package is distributed under the GNU Lesser General Public License v2.1.
 For relicensing, contact the package author.
