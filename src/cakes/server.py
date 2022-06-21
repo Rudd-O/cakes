@@ -1,8 +1,10 @@
+import logging
+import threading
+
 from typing import Optional
 import blindecdh
 import pskca
 
-import threading
 import grpc
 from cakes.proto import cakes_pb2_grpc as pb2_grpc, cakes_pb2 as pb2
 from cakes.types import (
@@ -29,6 +31,8 @@ from cryptography.hazmat.primitives.asymmetric.ec import (
     EllipticCurvePublicKey,
 )
 
+
+_LOGGER = logging.getLogger(__name__)
 
 # FIXME prevent abuse by forcing the client to do
 # an expensive computation.
@@ -78,6 +82,7 @@ class CAKESServicer(pb2_grpc.CAKESServicer):
         This is the first step in CAKES.
         """
         peer: str = context.peer()
+        _LOGGER.debug("Peer ClientPubkey %s", peer)
         with self.peers:
             if peer in self.peers:
                 context.abort(EPERM, "an ECDH is already ongoing")
@@ -103,6 +108,7 @@ class CAKESServicer(pb2_grpc.CAKESServicer):
         the next step in CAKES -- the IssueCertificate RPC call.
         """
         peer: str = context.peer()
+        _LOGGER.debug("Peer ServerPubkey %s", peer)
         with self.peers:
             try:
                 peer_pubkey = self.peers[peer]
@@ -128,9 +134,13 @@ class CAKESServicer(pb2_grpc.CAKESServicer):
         complete = s.run(peer_pubkey)
 
         def accept(peer: str, complete: blindecdh.CompletedECDH) -> None:
+            _LOGGER.debug("Adding PSK of peer %s to pending", peer)
             self.ca.add_psk(peer, None)
             if self.callback(peer, complete):
+                _LOGGER.debug("Adding PSK of peer %s to completed", peer)
                 self.ca.add_psk(peer, complete.derived_key)
+            else:
+                _LOGGER.debug("Ignoring PSK of peer %s", peer)
 
         t = threading.Thread(
             target=accept,
@@ -221,6 +231,7 @@ class CAKESServicer(pb2_grpc.CAKESServicer):
             EncryptedClientCert=enc_cert.to_bytes(),
             EncryptedCertChain=enc_chain.to_bytes(),
         )
+        _LOGGER.debug("IssueCertificate successful")
         return response
 
 

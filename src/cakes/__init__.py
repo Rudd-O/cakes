@@ -192,6 +192,7 @@ from cakes.types import (  # noqa: F401
     RejectedBySelf,
     Rejected,
     RejectedByPeer,
+    Ignored,
     ECDHVerificationCallback,
     CertificateIssuedCallback,
 )
@@ -205,6 +206,7 @@ __all__ = [
     "Rejected",
     "RejectedBySelf",
     "RejectedByPeer",
+    "Ignored",
     "ECDHVerificationCallback",
     "CertificateIssuedCallback",
     "CAKESClient",

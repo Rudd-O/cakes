@@ -34,6 +34,13 @@ class RejectedBySelf(Rejected):
     pass
 
 
+class Ignored(Rejected):
+    """
+    This exception is raised when the server never authorized the ECDH
+    exchange in the deadline given to the CAKESCLient.run() method.
+    """
+
+
 Pending = pskca.Pending
 
 CannotDecrypt = pskca.CannotDecrypt

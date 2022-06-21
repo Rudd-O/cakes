@@ -1,3 +1,7 @@
+import logging
+import time
+
+
 from typing import Tuple, List
 
 import grpc
@@ -5,14 +9,13 @@ import grpc
 import blindecdh
 import pskca
 
-import time
-
 from cakes.proto import cakes_pb2_grpc as pb2_grpc, cakes_pb2 as pb2
 from cakes.types import (
     ECDHVerificationCallback,
     CertificateIssuedCallback,
     RejectedByPeer,
     RejectedBySelf,
+    Ignored,
     EPERM,
     EWAIT,
 )
@@ -29,6 +32,8 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.serialization import (
     load_pem_public_key,
 )
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class CAKESClient(object):
@@ -66,6 +71,7 @@ class CAKESClient(object):
     def run(
         self,
         retry_interval: float = 3.0,
+        deadline: float = 60.0,
     ) -> Tuple[Certificate, List[Certificate]]:
         """Runs the CAKES protocol against the server connected to the channel.
 
@@ -124,15 +130,26 @@ class CAKESClient(object):
             EncryptedCSR=requestor.encrypt_csr(self.csr).to_bytes()
         )
 
+        start = time.time()
         retry = False
         while True:
+            _LOGGER.debug("Attempting to request certificate.")
             try:
                 reply = stub.IssueCertificate(request)
+                retry = False
             except grpc.RpcError as e:
                 if e.code() == EPERM:
                     raise RejectedByPeer(e.details())
                 elif e.code() == EWAIT:
-                    retry = True
+                    _LOGGER.debug("The server says we are not authorized yet.")
+                    elapsed = time.time() - start
+                    if elapsed >= deadline:
+                        raise Ignored(
+                            "The server did not authorize us in %.2f seconds"
+                            % (elapsed,)
+                        )
+                    else:
+                        retry = True
                 else:
                     raise
             if retry:
