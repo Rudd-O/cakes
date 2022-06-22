@@ -185,6 +185,7 @@ from cakes.server import CAKESServicer  # noqa: F401
 from cakes.util import (  # noqa: F401
     unconditional_accept_cert,
     unconditional_accept_ecdh,
+    accept_ecdh_via_console,
 )
 
 from cakes.types import (  # noqa: F401
@@ -197,11 +198,12 @@ from cakes.types import (  # noqa: F401
     CertificateIssuedCallback,
 )
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 __all__ = [
     "unconditional_accept_cert",
     "unconditional_accept_ecdh",
+    "accept_ecdh_via_console",
     "CannotDecrypt",
     "Rejected",
     "RejectedBySelf",
