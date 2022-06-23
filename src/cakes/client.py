@@ -99,7 +99,7 @@ class CAKESClient(object):
             retries when the server says that verification is still pending.
         """
         s = blindecdh.ECDHProtocol()
-        stub = pb2_grpc.CAKESStub(self.channel)
+        stub = pb2_grpc.CAKESStub(self.channel)  # type: ignore
         try:
             stub.ClientPubkey(
                 pb2.ECDHKey(

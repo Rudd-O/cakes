@@ -244,7 +244,7 @@ def __server() -> None:
     cert, key = pskca.create_certificate_and_key(ca=True)
     ca = pskca.CA(cert, key, [cert])
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-    pb2_grpc.add_CAKESServicer_to_server(
+    pb2_grpc.add_CAKESServicer_to_server(  # type: ignore
         CAKESServicer(
             ca,
             unconditional_accept_ecdh,
