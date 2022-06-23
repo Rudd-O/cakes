@@ -198,7 +198,7 @@ from cakes.types import (  # noqa: F401
     CertificateIssuedCallback,
 )
 
-__version__ = "0.1.3"
+__version__ = "0.1.4"
 
 __all__ = [
     "unconditional_accept_cert",
