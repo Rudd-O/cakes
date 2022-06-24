@@ -180,7 +180,7 @@ How does this work?  It's fairly simple.
 # FIXME: we also need a schematic of how the thing works and how the
 # certs relate to each other.
 
-from cakes.client import CAKESClient  # noqa: F401
+from cakes.client import AsyncCAKESClient, CAKESClient  # noqa: F401
 from cakes.server import CAKESServicer  # noqa: F401
 from cakes.util import (  # noqa: F401
     unconditional_accept_cert,
@@ -212,5 +212,6 @@ __all__ = [
     "ECDHVerificationCallback",
     "CertificateIssuedCallback",
     "CAKESClient",
+    "AsyncCAKESClient",
     "CAKESServicer",
 ]

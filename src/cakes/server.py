@@ -140,7 +140,8 @@ class CAKESServicer(pb2_grpc.CAKESServicer):
                 _LOGGER.debug("Adding PSK of peer %s to completed", peer)
                 self.ca.add_psk(peer, complete.derived_key)
             else:
-                _LOGGER.debug("Ignoring PSK of peer %s", peer)
+                self.ca.remove_psk(peer)
+                _LOGGER.debug("Removed PSK of peer %s", peer)
 
         t = threading.Thread(
             target=accept,

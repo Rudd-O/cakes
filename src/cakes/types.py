@@ -42,7 +42,8 @@ class RejectedBySelf(Rejected):
 class Ignored(Rejected):
     """
     This exception is raised when the server never authorized the ECDH
-    exchange in the deadline given to the CAKESCLient.run() method.
+    exchange in the deadline given to the CAKESClient.run() method,
+    or the AsyncCAKESClient.obtain_certificate() method.
     """
 
 

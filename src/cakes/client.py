@@ -1,15 +1,22 @@
+import asyncio
 import logging
 import time
 
 
-from typing import Tuple, List
+from typing import Tuple, List, cast
 
 import grpc
+import grpclib
+import grpclib.client
 
 import blindecdh
 import pskca
 
-from cakes.proto import cakes_pb2_grpc as pb2_grpc, cakes_pb2 as pb2
+from cakes.proto import (
+    cakes_pb2_grpc as pb2_grpc,
+    cakes_pb2 as pb2,
+    cakes_grpc as pb2_grpclib,
+)
 from cakes.types import (
     ECDHVerificationCallback,
     CertificateIssuedCallback,
@@ -178,7 +185,143 @@ class CAKESClient(object):
         return cert, chain
 
 
-__all__ = ["CAKESClient"]
+class AsyncCAKESClient(object):
+    def __init__(
+        self,
+        channel: grpclib.client.Channel,
+        csr: CertificateSigningRequest,
+    ) -> None:
+        """Initializes the asynchronous version of the CAKES client.
+
+        Parameters:
+            channel: a grpc.Channel to talk to the server through.
+            csr: a certificate signing request to be signed by the
+            CAKES server.
+        """
+        self.channel = channel
+        self.csr = csr
+        self.stub = pb2_grpclib.CAKESStub(self.channel)
+
+    def __del__(self) -> None:
+        delattr(self, "stub")
+        delattr(self, "channel")
+
+    async def obtain_verifier(
+        self,
+        timeout: int = 15,
+    ) -> blindecdh.CompletedECDH:
+        """Runs the first half of the CAKES protocol against the server
+        connected to the channel.
+
+        If the server provisionally accepts the ECDH exchange, then you will
+        obtain a blindecdh.CompletedECDH object that has a derived_key
+        attribute, which you must compare to the other side.
+
+        If the server rejected the ECDH exchange or otherwise failed to perform
+        the exchange or issue the cert, an exception RejectedByPeer is raised.
+        """
+        s = blindecdh.ECDHProtocol()
+        try:
+            await self.stub.ClientPubkey(
+                pb2.ECDHKey(
+                    pubkey=s.public_key.public_bytes(
+                        serialization.Encoding.PEM,
+                        serialization.PublicFormat.SubjectPublicKeyInfo,
+                    )
+                ),
+                timeout=timeout,
+            )
+            reply = cast(
+                pb2.ECDHKey,
+                await self.stub.ServerPubkey(
+                    pb2.Ack(),
+                    timeout=timeout,
+                ),
+            ).pubkey
+            remote_pubkey_pem = load_pem_public_key(reply)
+        except grpclib.GRPCError as e:
+            if e.status == grpclib.Status.PERMISSION_DENIED:
+                raise RejectedByPeer(e)
+            raise
+
+        complete = s.run(remote_pubkey_pem)
+        return complete
+
+    async def obtain_certificate(
+        self,
+        ecdh: blindecdh.CompletedECDH,
+        retry_interval: float = 3.0,
+        deadline: float = 60.0,
+        timeout: int = 15,
+    ) -> Tuple[Certificate, List[Certificate]]:
+        """Runs the second half of the CAKES protocol against the server
+        connected to the channel.
+
+        At the end of a successful process, it returns the certificate issued
+        to your code, as well as the certificate chain for the root of trust
+        you can use to verify the authenticated server.
+
+        If the server rejected the ECDH exchange or otherwise failed to perform
+        the exchange or issue the cert, an exception RejectedByPeer is raised.
+
+        If the communication was tampered between the parties, an exception
+        pskca.CannotDecrypt will be raised.
+
+        Parameters:
+            ecdh: the completed ECDH object you obtained from the call to
+            self.obtain_verifier().
+            retry_interval: (default 3) how many seconds to wait between.
+            retries when the server says that verification is still pending.
+            timeout: how long to wait for each call.
+        """
+
+        psk = ecdh.derived_key
+
+        requestor = pskca.Requestor(psk)
+
+        request = pb2.IssueCertificateRequest(
+            EncryptedCSR=requestor.encrypt_csr(self.csr).to_bytes()
+        )
+
+        start = time.time()
+        retry = False
+        while True:
+            _LOGGER.debug("Attempting to request certificate.")
+            try:
+                reply = await self.stub.IssueCertificate(
+                    request,
+                    timeout=timeout,
+                )
+                retry = False
+            except grpclib.GRPCError as e:
+                if e.status == grpclib.Status.PERMISSION_DENIED:
+                    raise RejectedByPeer(e)
+                elif e.status == grpclib.Status.UNAUTHENTICATED:
+                    _LOGGER.debug("The server says we are not authorized yet.")
+                    elapsed = time.time() - start
+                    if elapsed >= deadline:
+                        raise Ignored(
+                            "The server did not authorize us in %.2f seconds"
+                            % (elapsed,)
+                        )
+                    else:
+                        retry = True
+                else:
+                    raise
+            if retry:
+                await asyncio.sleep(retry_interval)
+            else:
+                break
+
+        cert, chain = requestor.decrypt_reply(
+            pskca.EncryptedClientCertificate(reply.EncryptedClientCert),
+            pskca.EncryptedCertificateChain(reply.EncryptedCertChain),
+        )
+
+        return cert, chain
+
+
+__all__ = ["CAKESClient", "AsyncCAKESClient"]
 
 
 def __client() -> None:
