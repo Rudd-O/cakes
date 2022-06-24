@@ -15,7 +15,6 @@ You will find this package useful if:
 * You want to authenticate the two parts by making a visual comparison
   on both sides (much like Bluetooth PIN pairing).
 
-
 You'll find more developer and implementation documentation in the
 [module](https://github.com/Rudd-O/cakes/blob/master/src/cakes/__init__.py).
 
