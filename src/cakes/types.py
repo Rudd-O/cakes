@@ -15,7 +15,7 @@ CertificateIssuedCallback = Callable[
 class Rejected(Exception):
     """Base class for rejections."""
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "Rejected"
 
 
@@ -25,7 +25,7 @@ class RejectedByPeer(Rejected):
     and the server callback rejected the exchange.
     """
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "Rejected by peer"
 
 
@@ -35,7 +35,7 @@ class RejectedBySelf(Rejected):
     and the client callback rejected the exchange.
     """
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "Rejected by self"
 
 

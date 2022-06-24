@@ -72,6 +72,7 @@ class CAKESClient(object):
         self,
         retry_interval: float = 3.0,
         deadline: float = 60.0,
+        timeout: int = 15,
     ) -> Tuple[Certificate, List[Certificate]]:
         """Runs the CAKES protocol against the server connected to the channel.
 
@@ -95,8 +96,9 @@ class CAKESClient(object):
         pskca.CannotDecrypt will be raised.
 
         Parameters:
-            retry_interval: (default 3) how many seconds to wait between
+            retry_interval: (default 3) how many seconds to wait between.
             retries when the server says that verification is still pending.
+            timeout: how long to wait for each call.
         """
         s = blindecdh.ECDHProtocol()
         stub = pb2_grpc.CAKESStub(self.channel)  # type: ignore
@@ -107,9 +109,13 @@ class CAKESClient(object):
                         serialization.Encoding.PEM,
                         serialization.PublicFormat.SubjectPublicKeyInfo,
                     )
-                )
+                ),
+                timeout=timeout,
             )
-            reply = stub.ServerPubkey(pb2.Ack()).pubkey
+            reply = stub.ServerPubkey(
+                pb2.Ack(),
+                timeout=timeout,
+            ).pubkey
             remote_pubkey_pem = load_pem_public_key(reply)
         except grpc.RpcError as e:
             if e.code() == EPERM:
@@ -135,7 +141,10 @@ class CAKESClient(object):
         while True:
             _LOGGER.debug("Attempting to request certificate.")
             try:
-                reply = stub.IssueCertificate(request)
+                reply = stub.IssueCertificate(
+                    request,
+                    timeout=timeout,
+                )
                 retry = False
             except grpc.RpcError as e:
                 if e.code() == EPERM:
