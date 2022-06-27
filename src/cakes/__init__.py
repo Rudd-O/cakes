@@ -55,6 +55,9 @@ Step 2: make your client adopt a CAKESClient to obtain its certificate.
 csr, client_key = pskca.create_certificate_signing_request()
 # Create gRPC insecure channel.
 with grpc.insecure_channel("localhost:50052") as channel:
+    # There is an asynchronous variant of the client too, for use within
+    # asyncio-powered programs.  See the AsyncCAKESClient class for more
+    # information.
     client = cakes.CAKESClient(
         channel,
         csr,

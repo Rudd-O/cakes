@@ -54,7 +54,9 @@ class CAKESClient(object):
         """Initializes the CAKES client.
 
         Parameters:
-            channel: a grpc.Channel to talk to the server through.
+            channel: a grpc.Channel (of the insecure variant, generally)
+            to talk to the CAKES server.  You must clean up the channel
+            after using this.
             csr: a certificate signing request to be signed by the
             CAKES server.
             verification_callback: a callback which the ECDH exchange process
@@ -191,12 +193,27 @@ class AsyncCAKESClient(object):
         channel: grpclib.client.Channel,
         csr: CertificateSigningRequest,
     ) -> None:
-        """Initializes the asynchronous version of the CAKES client.
+        """
+        Initializes the asynchronous version of the CAKES client.  Unlike
+        the synchronous version, this class requires you to run the exchange
+        in two phases instead of having a single phase to which you pass a
+        verification function.
+
+        The way this works is very simple: after instantiation, run the
+        obtain_verifier function.  Use the received CompletedECDH object
+        (its derived_key attribute) to compare against the server's own
+        received CompletedECDH object.  If both match, proceed to call
+        issue_certificate, which will return you the signed certificate.
+        See the method documentation for more information.
 
         Parameters:
-            channel: a grpc.Channel to talk to the server through.
-            csr: a certificate signing request to be signed by the
-            CAKES server.
+            channel: a grpc.Channel (of the insecure variant, generally)
+            to talk to the CAKES server.  You must clean up the channel
+            after using this.
+            csr: a certificate signing request to be signed by the CAKES
+            server.  As the channel may be shared among multiple stubs,
+            it is your responsibility to close the channel once you are
+            done using it.
         """
         self.channel = channel
         self.csr = csr
